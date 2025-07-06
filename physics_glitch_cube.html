@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Glitch Cube - Reality Breaking 3D</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000000 70%);
+            overflow: hidden;
+            font-family: 'Orbitron', monospace;
+            color: #00ff41;
+            position: relative;
+            height: 100vh;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* Glitch overlay effects */
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Scanlines */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 255, 65, 0.03) 2px,
+                rgba(0, 255, 65, 0.03) 4px
+            );
+            animation: scanlineMove 0.1s infinite linear;
+        }
+
+        @keyframes scanlineMove {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(4px); }
+        }
+
+        /* Static noise */
+        .static-noise {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            background-size: 2px 2px;
+            animation: staticNoise 0.1s infinite steps(10);
+        }
+
+        @keyframes staticNoise {
+            0% { background-position: 0 0; }
+            10% { background-position: -2px -2px; }
+            20% { background-position: 2px 0; }
+            30% { background-position: 0 2px; }
+            40% { background-position: -2px 0; }
+            50% { background-position: 2px -2px; }
+            60% { background-position: 0 -2px; }
+            70% { background-position: 2px 2px; }
+            80% { background-position: -2px 2px; }
+            90% { background-position: 2px 0; }
+            100% { background-position: 0 0; }
+        }
+
+        /* UI Controls */
+        .controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .controls h2 {
+            margin-bottom: 15px;
+            color: #00ff41;
+            text-shadow: 0 0 10px #00ff41;
+        }
+
+        .control-group {
+            margin-bottom: 10px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #00ff41;
+        }
+
+        .control-group button {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 8px 15px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            transition: all 0.3s ease;
+        }
+
+        .control-group button:hover {
+            background: rgba(0, 255, 65, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+        }
+
+        .control-group button.active {
+            background: rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.7);
+        }
+
+        /* Status display */
+        .status {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ff0040;
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.3);
+            color: #ff0040;
+            font-size: 12px;
+            max-width: 300px;
+        }
+
+        .status h3 {
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #ff0040;
+        }
+
+        /* Loading screen */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 1s ease;
+        }
+
+        .loading-text {
+            color: #00ff41;
+            font-size: 24px;
+            text-shadow: 0 0 20px #00ff41;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="loading-text">INITIALIZING PHYSICS GLITCH MATRIX...</div>
+    </div>
+
+    <div id="container"></div>
+    
+    <div class="glitch-overlay">
+        <div class="scanlines"></div>
+        <div class="static-noise"></div>
+    </div>
+
+    <div class="controls">
+        <h2>PHYSICS BREAK CONTROLS</h2>
+        
+        <div class="control-group">
+            <label>GRAVITY SYSTEM:</label>
+            <button onclick="toggleGravityInversion()">INVERT GRAVITY</button>
+            <button onclick="randomGravity()">CHAOS GRAVITY</button>
+        </div>
+        
+        <div class="control-group">
+            <label>MOMENTUM ENGINE:</label>
+            <button onclick="momentumGlitch()">MOMENTUM BREAK</button>
+            <button onclick="suddenStop()">EMERGENCY STOP</button>
+        </div>
+        
+        <div class="control-group">
+            <label>COLLISION MATRIX:</label>
+            <button onclick="enableClipping()">ENABLE CLIPPING</button>
+            <button onclick="phaseShift()">PHASE SHIFT</button>
+        </div>
+        
+        <div class="control-group">
+            <label>DEFORMATION:</label>
+            <button onclick="elasticMode()">ELASTIC MODE</button>
+            <button onclick="rubberPhysics()">RUBBER PHYSICS</button>
+        </div>
+        
+        <div class="control-group">
+            <label>STRUCTURAL:</label>
+            <button onclick="fragmentCube()">FRAGMENT</button>
+            <button onclick="explodeCube()">EXPLODE</button>
+            <button onclick="resetCube()">RESET MATRIX</button>
+        </div>
+    </div>
+
+    <div class="status">
+        <h3>SYSTEM STATUS</h3>
+        <div id="statusText">Physics engine: STABLE<br>Reality coherence: 100%<br>Glitch level: MINIMAL</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Global variables
+        let scene, camera, renderer, cube, cubeGeometry, cubeMaterial;
+        let fragments = [];
+        let originalVertices = [];
+        let glitchState = {
+            gravityInverted: false,
+            momentumBroken: false,
+            clippingEnabled: false,
+            elasticMode: false,
+            fragmented: false,
+            velocity: { x: 0, y: 0, z: 0 },
+            gravity: -0.01,
+            bounce: 0.8,
+            deformation: 1.0
+        };
+        
+        let clock = new THREE.Clock();
+        let time = 0;
+
+        // Initialize the scene
+        function init() {
+            // Create scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x000000, 10, 50);
+
+            // Create camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x000000, 0);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Create cube geometry and material
+            cubeGeometry = new THREE.BoxGeometry(2, 2, 2, 8, 8, 8); // More segments for deformation
+            
+            // Store original vertices for reset
+            originalVertices = cubeGeometry.attributes.position.array.slice();
+
+            // Create materials for different effects
+            cubeMaterial = new THREE.MeshPhongMaterial({
+                color: 0x00ff41,
+                transparent: true,
+                opacity: 0.8,
+                wireframe: false,
+                side: THREE.DoubleSide
+            });
+
+            // Create cube mesh
+            cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            cube.position.set(0, 0, 0);
+            cube.castShadow = true;
+            cube.receiveShadow = true;
+            scene.add(cube);
+
+            // Add lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0x00ff41, 1);
+            directionalLight.position.set(5, 5, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Add point lights for dramatic effect
+            const pointLight1 = new THREE.PointLight(0xff0040, 0.5, 10);
+            pointLight1.position.set(-3, 2, 3);
+            scene.add(pointLight1);
+
+            const pointLight2 = new THREE.PointLight(0x4000ff, 0.5, 10);
+            pointLight2.position.set(3, -2, -3);
+            scene.add(pointLight2);
+
+            // Add particle system
+            createParticleSystem();
+
+            // Start animation
+            animate();
+
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 2000);
+
+            // Update static noise background
+            updateStaticNoise();
+        }
+
+        // Create particle system for atmosphere
+        function createParticleSystem() {
+            const particleCount = 1000;
+            const particles = new THREE.BufferGeometry();
+            const positions = new Float32Array(particleCount * 3);
+
+            for (let i = 0; i < particleCount * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 50;
+            }
+
+            particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+            const particleMaterial = new THREE.PointsMaterial({
+                color: 0x00ff41,
+                size: 0.1,
+                transparent: true,
+                opacity: 0.6,
+                blending: THREE.AdditiveBlending
+            });
+
+            const particleSystem = new THREE.Points(particles, particleMaterial);
+            scene.add(particleSystem);
+        }
+
+        // Update static noise pattern
+        function updateStaticNoise() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            
+            const imageData = ctx.createImageData(100, 100);
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                const value = Math.random() * 255;
+                imageData.data[i] = value;     // R
+                imageData.data[i + 1] = value; // G
+                imageData.data[i + 2] = value; // B
+                imageData.data[i + 3] = 50;    // A
+            }
+            ctx.putImageData(imageData, 0, 0);
+            
+            const staticNoise = document.querySelector('.static-noise');
+            staticNoise.style.backgroundImage = `url(${canvas.toDataURL()})`;
+            
+            setTimeout(updateStaticNoise, 100);
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            time = clock.getElapsedTime();
+            
+            if (!glitchState.fragmented) {
+                // Apply physics
+                applyPhysics();
+                
+                // Apply deformations
+                if (glitchState.elasticMode) {
+                    applyElasticDeformation();
+                }
+                
+                // Update cube rotation and position
+                updateCubeTransform();
+            } else {
+                // Animate fragments
+                animateFragments();
+            }
+            
+            // Update camera with subtle movement
+            camera.position.x = Math.sin(time * 0.1) * 0.5;
+            camera.position.y = Math.cos(time * 0.15) * 0.3;
+            camera.lookAt(scene.position);
+            
+            renderer.render(scene, camera);
+        }
+
+        // Apply physics simulation
+        function applyPhysics() {
+            if (!cube) return;
+
+            // Apply gravity
+            glitchState.velocity.y += glitchState.gravity;
+            
+            // Apply momentum glitches
+            if (glitchState.momentumBroken && Math.random() < 0.02) {
+                glitchState.velocity.x += (Math.random() - 0.5) * 0.1;
+                glitchState.velocity.z += (Math.random() - 0.5) * 0.1;
+                updateStatus("MOMENTUM GLITCH DETECTED");
+            }
+            
+            // Update position
+            cube.position.x += glitchState.velocity.x;
+            cube.position.y += glitchState.velocity.y;
+            cube.position.z += glitchState.velocity.z;
+            
+            // Collision detection (or lack thereof)
+            if (!glitchState.clippingEnabled) {
+                // Boundary collisions
+                if (cube.position.y < -3) {
+                    cube.position.y = -3;
+                    glitchState.velocity.y *= -glitchState.bounce;
+                }
+                if (cube.position.y > 3) {
+                    cube.position.y = 3;
+                    glitchState.velocity.y *= -glitchState.bounce;
+                }
+                
+                if (Math.abs(cube.position.x) > 4) {
+                    cube.position.x = Math.sign(cube.position.x) * 4;
+                    glitchState.velocity.x *= -glitchState.bounce;
+                }
+                
+                if (Math.abs(cube.position.z) > 4) {
+                    cube.position.z = Math.sign(cube.position.z) * 4;
+                    glitchState.velocity.z *= -glitchState.bounce;
+                }
+            } else {
+                // Clipping mode - cube can go through boundaries
+                if (Math.abs(cube.position.x) > 10 || Math.abs(cube.position.y) > 10 || Math.abs(cube.position.z) > 10) {
+                    // Teleport back with phase shift effect
+                    cube.position.set(
+                        (Math.random() - 0.5) * 6,
+                        (Math.random() - 0.5) * 6,
+                        (Math.random() - 0.5) * 6
+                    );
+                    updateStatus("PHASE SHIFT COMPLETE");
+                }
+            }
+            
+            // Apply drag
+            glitchState.velocity.x *= 0.99;
+            glitchState.velocity.z *= 0.99;
+        }
+
+        // Apply elastic deformation
+        function applyElasticDeformation() {
+            if (!cubeGeometry) return;
+            
+            const positions = cubeGeometry.attributes.position.array;
+            const time = clock.getElapsedTime();
+            
+            for (let i = 0; i < positions.length; i += 3) {
+                const originalX = originalVertices[i];
+                const originalY = originalVertices[i + 1];
+                const originalZ = originalVertices[i + 2];
+                
+                // Apply wave-like deformation
+                const wave = Math.sin(time * 3 + originalX * 2) * 0.2 * glitchState.deformation;
+                const stretch = Math.cos(time * 2 + originalY * 1.5) * 0.15 * glitchState.deformation;
+                
+                positions[i] = originalX + wave;
+                positions[i + 1] = originalY + stretch;
+                positions[i + 2] = originalZ + Math.sin(time * 4 + originalZ * 3) * 0.1 * glitchState.deformation;
+            }
+            
+            cubeGeometry.attributes.position.needsUpdate = true;
+            cubeGeometry.computeVertexNormals();
+        }
+
+        // Update cube transformation
+        function updateCubeTransform() {
+            if (!cube) return;
+            
+            // Base rotation
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.015;
+            cube.rotation.z += 0.005;
+            
+            // Add glitch rotations
+            if (glitchState.momentumBroken && Math.random() < 0.05) {
+                cube.rotation.x += (Math.random() - 0.5) * 0.5;
+                cube.rotation.y += (Math.random() - 0.5) * 0.5;
+                cube.rotation.z += (Math.random() - 0.5) * 0.5;
+            }
+        }
+
+        // Animate fragments
+        function animateFragments() {
+            fragments.forEach(fragment => {
+                fragment.position.add(fragment.velocity);
+                fragment.velocity.y += glitchState.gravity * 0.5;
+                fragment.rotation.x += fragment.rotationSpeed.x;
+                fragment.rotation.y += fragment.rotationSpeed.y;
+                fragment.rotation.z += fragment.rotationSpeed.z;
+                
+                // Fade out
+                fragment.material.opacity *= 0.995;
+                if (fragment.material.opacity < 0.01) {
+                    scene.remove(fragment);
+                }
+            });
+            
+            // Remove faded fragments
+            fragments = fragments.filter(fragment => fragment.material.opacity > 0.01);
+        }
+
+        // Control functions
+        function toggleGravityInversion() {
+            glitchState.gravityInverted = !glitchState.gravityInverted;
+            glitchState.gravity = glitchState.gravityInverted ? 0.01 : -0.01;
+            updateStatus(`Gravity ${glitchState.gravityInverted ? 'INVERTED' : 'NORMALIZED'}`);
+        }
+
+        function randomGravity() {
+            setInterval(() => {
+                glitchState.gravity = (Math.random() - 0.5) * 0.02;
+            }, 500);
+            updateStatus("CHAOS GRAVITY ACTIVATED");
+        }
+
+        function momentumGlitch() {
+            glitchState.momentumBroken = !glitchState.momentumBroken;
+            updateStatus(`Momentum engine ${glitchState.momentumBroken ? 'CORRUPTED' : 'STABILIZED'}`);
+        }
+
+        function suddenStop() {
+            glitchState.velocity = { x: 0, y: 0, z: 0 };
+            if (cube) {
+                cube.rotation.set(0, 0, 0);
+            }
+            updateStatus("EMERGENCY STOP EXECUTED");
+        }
+
+        function enableClipping() {
+            glitchState.clippingEnabled = !glitchState.clippingEnabled;
+            updateStatus(`Collision detection ${glitchState.clippingEnabled ? 'DISABLED' : 'ENABLED'}`);
+        }
+
+        function phaseShift() {
+            if (cube) {
+                cube.position.set(
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 8,
+                    (Math.random() - 0.5) * 8
+                );
+                
+                // Add phase shift visual effect
+                cube.material.opacity = 0.3;
+                setTimeout(() => {
+                    if (cube) cube.material.opacity = 0.8;
+                }, 500);
+            }
+            updateStatus("PHASE SHIFT INITIATED");
+        }
+
+        function elasticMode() {
+            glitchState.elasticMode = !glitchState.elasticMode;
+            glitchState.deformation = glitchState.elasticMode ? 1.0 : 0.0;
+            updateStatus(`Elastic deformation ${glitchState.elasticMode ? 'ENABLED' : 'DISABLED'}`);
+        }
+
+        function rubberPhysics() {
+            glitchState.elasticMode = true;
+            glitchState.deformation = 2.0;
+            glitchState.bounce = 1.2;
+            updateStatus("RUBBER PHYSICS ACTIVATED");
+        }
+
+        function fragmentCube() {
+            if (!cube || glitchState.fragmented) return;
+            
+            glitchState.fragmented = true;
+            scene.remove(cube);
+            
+            // Create fragments
+            for (let i = 0; i < 27; i++) {
+                const fragmentGeometry = new THREE.BoxGeometry(0.3, 0.3, 0.3);
+                const fragmentMaterial = new THREE.MeshPhongMaterial({
+                    color: new THREE.Color().setHSL(Math.random(), 0.8, 0.5),
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                const fragment = new THREE.Mesh(fragmentGeometry, fragmentMaterial);
+                fragment.position.copy(cube.position);
+                fragment.position.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
+                
+                fragment.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.2,
+                    Math.random() * 0.1,
+                    (Math.random() - 0.5) * 0.2
+                );
+                
+                fragment.rotationSpeed = {
+                    x: (Math.random() - 0.5) * 0.1,
+                    y: (Math.random() - 0.5) * 0.1,
+                    z: (Math.random() - 0.5) * 0.1
+                };
+                
+                scene.add(fragment);
+                fragments.push(fragment);
+            }
+            
+            updateStatus("CUBE FRAGMENTED - STRUCTURAL INTEGRITY COMPROMISED");
+        }
+
+        function explodeCube() {
+            if (!cube) return;
+            
+            // Create explosion effect
+            for (let i = 0; i < 50; i++) {
+                const particleGeometry = new THREE.SphereGeometry(0.05, 4, 4);
+                const particleMaterial = new THREE.MeshBasicMaterial({
+                    color: new THREE.Color().setHSL(Math.random(), 1, 0.5),
+                    transparent: true,
+                    opacity: 1
+                });
+                
+                const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+                particle.position.copy(cube.position);
+                
+                const direction = new THREE.Vector3(
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ).normalize();
+                
+                particle.velocity = direction.multiplyScalar(Math.random() * 0.3 + 0.1);
+                particle.rotationSpeed = {
+                    x: (Math.random() - 0.5) * 0.2,
+                    y: (Math.random() - 0.5) * 0.2,
+                    z: (Math.random() - 0.5) * 0.2
+                };
+                
+                scene.add(particle);
+                fragments.push(particle);
+            }
+            
+            scene.remove(cube);
+            cube = null;
+            glitchState.fragmented = true;
+            
+            updateStatus("EXPLOSIVE DECOMPRESSION - CUBE DESTROYED");
+        }
+
+        function resetCube() {
+            // Clear fragments
+            fragments.forEach(fragment => scene.remove(fragment));
+            fragments = [];
+            
+            // Remove existing cube
+            if (cube) scene.remove(cube);
+            
+            // Reset geometry
+            cubeGeometry = new THREE.BoxGeometry(2, 2, 2, 8, 8, 8);
+            originalVertices = cubeGeometry.attributes.position.array.slice();
+            
+            // Create new cube
+            cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+            cube.position.set(0, 0, 0);
+            cube.rotation.set(0, 0, 0);
+            scene.add(cube);
+            
+            // Reset state
+            glitchState = {
+                gravityInverted: false,
+                momentumBroken: false,
+                clippingEnabled: false,
+                elasticMode: false,
+                fragmented: false,
+                velocity: { x: 0, y: 0, z: 0 },
+                gravity: -0.01,
+                bounce: 0.8,
+                deformation: 0.0
+            };
+            
+            updateStatus("MATRIX RESET - REALITY RESTORED");
+        }
+
+        function updateStatus(message) {
+            const statusText = document.getElementById('statusText');
+            const glitchLevel = Math.floor(Math.random() * 100);
+            const coherence = Math.max(0, 100 - glitchLevel);
+            
+            statusText.innerHTML = `
+                Physics engine: ${glitchState.momentumBroken ? 'CORRUPTED' : 'STABLE'}<br>
+                Reality coherence: ${coherence}%<br>
+                Glitch level: ${glitchLevel > 70 ? 'CRITICAL' : glitchLevel > 40 ? 'HIGH' : 'MODERATE'}<br>
+                Status: ${message}
+            `;
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize when page loads
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
